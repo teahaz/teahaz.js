@@ -1,5 +1,5 @@
-# teahouse.js
-teahaz.js is a JavaScript module to work with teahaz-server.
+# teahaz.js
+teahaz.js is a JavaScript module that helps clients work with a teahaz-server.
 
 
 
