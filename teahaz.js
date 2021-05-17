@@ -48,9 +48,29 @@ class Chatroom
         .then((response) =>
             { // successful login
 
+                console.log("successfully logged in!");
                 // we need to store the cookie ourselfs bc it makes workign with it easier
-                let temp = response.headers['set-cookie'][0].split('; ')[0].split('=');
-                this.cookie = temp[1];
+
+                // if the library is running in a browser then the browser steals the cookie header.
+                // we need to combat this by getting it from document.cookie
+                let temp = []
+                if (typeof window == 'undefined')
+                {
+                    temp = response.headers['set-cookie'][0].split('; ')[0].split('=');
+                }
+                else
+                {
+                    temp = document.cookie.split('; ')[0].split('=')
+                }
+
+                // loop through the cookies and find the one for this chatroom
+                for(let i=0; i<temp.length; i++)
+                {
+                    if (temp[i] == this.chatroom)
+                    {
+                        this.cookie = temp[i+1]
+                    }
+                }
 
                 // if the user doesnt specify raw_response then just give the data back
                 if (!this.raw_response) { response = response.data }
@@ -61,6 +81,7 @@ class Chatroom
             })
         .catch((response) =>
             { // failed login
+                console.log("no suc");
 
                 // if the user doesnt specify raw_response then just give the data back
                 if (!this.raw_response) { response = response.data }
@@ -73,7 +94,6 @@ class Chatroom
 
     async send(args) // send a message to the chatroom
     { // message: str , callback_success, callback_error
-
         let message = args.message;
         let callback_success = args.callback_success;
         let callback_error = args.callback_error;
@@ -120,7 +140,6 @@ class Chatroom
 
     async get_since_time(args) // get all messages since a given time
     { // time: str(int), callback_success, callback_error
-
         // time is user set or the last 10 minutes
         let time             = ((args.time != undefined)? String(args.time) : (new Date().getTime()/1000)-600);
         let callback_success = args.callback_success;
@@ -184,7 +203,6 @@ class Chatroom
 
     async monitor(args) // monitors a chatroom for new messages
     { // interval=1, callback_success, callback_error, return_messages=false, return_errors=false
-
         let interval          = ((args.interval != undefined)? args.interval : 1);
         let return_on_success = ((args.return_messages != undefined)? args.return_messages : false)
         let return_on_fail    = ((args.return_errors != undefined)? args.return_errors : false)
