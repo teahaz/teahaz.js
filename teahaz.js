@@ -359,32 +359,32 @@ class Chatroom
 
 const test = async() =>
 {
-    console.log("got here");
-    conv1 = new Chatroom({
-       username: 'a',
-       password: '1234567890',
-       chatroom: '8c6789de-b551-11eb-a0cc-024298d109d7',
-       server:   'http://localhost:13337',
-       cookie: undefined,
-       raw_response: false
-    });
-
-    console.log("got here");
-    conv1.use_invite({
-        username: 'b',
-        nickname: 'friend',
-        chatroom: '47abb4e0-b8f9-11eb-bf76-b42e99435986',
-        invite: '7ed98e6e-b8fa-11eb-9b03-b42e99435986',
-    })
-    .then((response) =>
-        {
-            console.log(response);
-        })
-    .catch((response) =>
-        {
-            console.log(response);
-        })
-
+    // console.log("got here");
+    // conv1 = new Chatroom({
+    //    username: 'a',
+    //    password: '1234567890',
+    //    chatroom: '8c6789de-b551-11eb-a0cc-024298d109d7',
+    //    server:   'http://localhost:13337',
+    //    cookie: undefined,
+    //    raw_response: false
+    // });
+    //
+    // console.log("got here");
+    // conv1.use_invite({
+    //     username: 'b',
+    //     nickname: 'friend',
+    //     chatroom: '47abb4e0-b8f9-11eb-bf76-b42e99435986',
+    //     invite: '7ed98e6e-b8fa-11eb-9b03-b42e99435986',
+    // })
+    // .then((response) =>
+    //     {
+    //         console.log(response);
+    //     })
+    // .catch((response) =>
+    //     {
+    //         console.log(response);
+    //     })
+    //
    //
    // await conv1.login({
    //     callback_success: undefined,
