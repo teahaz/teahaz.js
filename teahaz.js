@@ -8,6 +8,7 @@ class Chatroom
     constructor(args)
     {
         this.username     = args.username;
+        this.nickname     = args.nickname;
         this.password     = args.password;
         this.chatroom     = args.chatroom;
         this.server       = args.server;
@@ -31,6 +32,98 @@ class Chatroom
         }
     }
 
+    _extract_cookie(server_response)
+    { /// extract a cookie from the server response
+        // if the library is running in a browser then the browser steals the cookie header.
+        // we need to combat this by getting it from document.cookie
+        let cookie;
+        let temp = []
+        if (typeof window == 'undefined')
+        {
+            temp = server_response.headers['set-cookie'][0].split('; ')[0].split('=');
+        }
+        else
+        {
+            temp = document.cookie.split('; ')[0].split('=')
+        }
+
+        // loop through the cookies and find the one for this chatroom
+        for(let i=0; i<temp.length; i++)
+        {
+            if (temp[i] == this.chatroom)
+            {
+                cookie = temp[i+1]
+            }
+        }
+
+        return cookie
+    }
+
+    async use_invite(args) // use an invite
+    {
+        let inviteId = args.invite;
+        let callback_error = args.callback_error;
+        let callback_success = args.callback_success;
+
+        // only resets class variables if they are defined in 'args'
+        this.username = ((args.username != undefined)? args.username : this.username );
+        this.nickname = ((args.nickname != undefined)? args.nickname : this.nickname );
+        this.password = ((args.password != undefined)? args.password : this.password );
+        this.chatroom = ((args.chatroom != undefined)? args.chatroom : this.chatroom );
+
+
+        // make sure all data is present
+        let res;
+        if (inviteId == undefined) { res = "No invite has been set!" }
+        if (this.username == undefined) { res = "No username has been set!" }
+        if (this.nickname == undefined) { res = "No nickname has been set!" }
+        if (this.password == undefined) { res = "No password has been set!" }
+        if (this.chatroom == undefined) { res = "No chatroom has been set!" }
+        if (res != undefined)
+        {
+            this._runcallbacks(callback_success, res);
+            return Promise.reject(res);
+        }
+
+        // make request
+        return axios({
+            method: 'post',
+            url: `${this.server}/api/v0/invite/${this.chatroom}`,
+            data: {
+                username: this.username,
+                nickname: this.nickname,
+                password: this.password,
+                inviteId: inviteId
+            }
+        })
+        .then((response) =>
+            { // successfully joined the chatroom
+
+                console.log("Successfully joined the chatroom");
+
+                // save cokie set by the server
+                this.cookie = this._extract_cookie(response);
+
+                // if the user doesnt specify raw_response then just give the data back
+                if (!this.raw_response && response.data != undefined) { response = response.data }
+
+                // callback and promise for successful login
+                this._runcallbacks(callback_success, response)
+                return Promise.resolve(response)
+            })
+        .catch((response) =>
+            { // failed to join chatrom
+                console.log("Failed to join chatroom :(");
+
+                // if the user doesnt specify raw_response then just give the data back
+                if (!this.raw_response && response.data != undefined) { response = response.data }
+
+                // callback and promise for unsuccessful login
+                this._runcallbacks(callback_error, response)
+                return Promise.reject(response)
+            })
+    }
+
     async login(args)// login to a chatroom
     { // callback_success, callback_error
         let callback_success = args.callback_success
@@ -51,29 +144,11 @@ class Chatroom
                 console.log("successfully logged in!");
                 // we need to store the cookie ourselfs bc it makes workign with it easier
 
-                // if the library is running in a browser then the browser steals the cookie header.
-                // we need to combat this by getting it from document.cookie
-                let temp = []
-                if (typeof window == 'undefined')
-                {
-                    temp = response.headers['set-cookie'][0].split('; ')[0].split('=');
-                }
-                else
-                {
-                    temp = document.cookie.split('; ')[0].split('=')
-                }
-
-                // loop through the cookies and find the one for this chatroom
-                for(let i=0; i<temp.length; i++)
-                {
-                    if (temp[i] == this.chatroom)
-                    {
-                        this.cookie = temp[i+1]
-                    }
-                }
+                // save cokie set by the server
+                this.cookie = this._extract_cookie(response);
 
                 // if the user doesnt specify raw_response then just give the data back
-                if (!this.raw_response) { response = response.data }
+                if (!this.raw_response && response.data != undefined) { response = response.data }
 
                 // callback and promise for successful login
                 this._runcallbacks(callback_success, response)
@@ -84,7 +159,7 @@ class Chatroom
                 console.log("no suc");
 
                 // if the user doesnt specify raw_response then just give the data back
-                if (!this.raw_response) { response = response.data }
+                if (!this.raw_response && response.data != undefined) { response = response.data }
 
                 // callback and promise for unsuccessful login
                 this._runcallbacks(callback_error, response)
@@ -120,7 +195,7 @@ class Chatroom
             {// message was sent successfully
 
                 // if the user doesnt specify raw_response then just give the data back
-                if (!this.raw_response) { response = response.data }
+                if (!this.raw_response && response.data != undefined) { response = response.data }
 
                 //return messages or call callbacks
                 this._runcallbacks(callback_success, response)
@@ -130,7 +205,7 @@ class Chatroom
             {// message failed to send
 
                 // if the user doesnt specify raw_response then just give the data back
-                if (!this.raw_response) { response = response.data }
+                if (!this.raw_respons && response.data != undefined) { response = response.data }
 
                 //return messages or call callbacks
                 this._runcallbacks(callback_error, response)
@@ -193,7 +268,7 @@ class Chatroom
             { // failed to get messages
 
                 // if the user doesnt specify raw_response then just give the data back
-                if (!this.raw_response) { response = response.data }
+                if (!this.raw_response && response.data != undefined) { response = response.data }
 
                 //return messages or call callbacks
                 this._runcallbacks(callback_error, response)
@@ -245,7 +320,7 @@ class Chatroom
 
             // if raw_response is set then get_since_time returns the entire request
             // we need to filter that to use it
-            if (this.raw_response) { data = data.data }
+            if (this.raw_response && response.data != undefined) { data = data.data }
 
             // keep least rounds messages so we dont repring duplicates
             let seen_lastround = seen
@@ -282,48 +357,65 @@ class Chatroom
 /// testing stuff dont look at this :)
 // these all have default values and you dont need to be this verbose, but well testing
 
-//const test = async() =>
-//{
-//    conv1 = new Chatroom({
-//        username: 'a',
-//        password: '1234567890',
-//        chatroom: '8c6789de-b551-11eb-a0cc-024298d109d7',
-//        server:   'http://localhost:13337',
-//        cookie: undefined,
-//        raw_response: false
-//    });
+const test = async() =>
+{
+    console.log("got here");
+    conv1 = new Chatroom({
+       username: 'a',
+       password: '1234567890',
+       chatroom: '8c6789de-b551-11eb-a0cc-024298d109d7',
+       server:   'http://localhost:13337',
+       cookie: undefined,
+       raw_response: false
+    });
+
+    console.log("got here");
+    conv1.use_invite({
+        username: 'b',
+        nickname: 'friend',
+        chatroom: '47abb4e0-b8f9-11eb-bf76-b42e99435986',
+        invite: '7ed98e6e-b8fa-11eb-9b03-b42e99435986',
+    })
+    .then((response) =>
+        {
+            console.log(response);
+        })
+    .catch((response) =>
+        {
+            console.log(response);
+        })
+
+   //
+   // await conv1.login({
+   //     callback_success: undefined,
+   //     callback_error: console.log
+   // });
+   //
+   // await conv1.send({
+   //     message: "Good afternoon!",
+   //     callback_success: undefined,
+   //     callback_error: console.log
+   // });
+   //
+   // await conv1.get_since_time({
+   //     time: 0,
+   //     callback_success: console.log,
+   //     callback_error: console.log
+   // });
+   //
+   // conv1.monitor({
+   //     interval: 2,
+   //     callback_success: console.log,
+   //     callback_error: undefined,
+   //     return_messages: false,
+   //     return_errors: true
+   // })
+   // .catch((response) =>
+   //     {
+   //         console.error(response);
+   //     })
+}
 //
-//    await conv1.login({
-//        callback_success: undefined,
-//        callback_error: console.log
-//    });
-//
-//    await conv1.send({
-//        message: "Good afternoon!",
-//        callback_success: undefined,
-//        callback_error: console.log
-//    });
-//
-//    await conv1.get_since_time({
-//        time: 0,
-//        callback_success: console.log,
-//        callback_error: console.log
-//    });
-//
-//    conv1.monitor({
-//        interval: 2,
-//        callback_success: console.log,
-//        callback_error: undefined,
-//        return_messages: false,
-//        return_errors: true
-//    })
-//    .catch((response) =>
-//        {
-//            console.error(response);
-//        })
-//}
 //
 //
-//
-//// conv1.send("hello")
-//test()
+test()
