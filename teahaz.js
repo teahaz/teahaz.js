@@ -34,18 +34,9 @@ class Chatroom
 
     _extract_cookie(server_response)
     { /// extract a cookie from the server response
-        // if the library is running in a browser then the browser steals the cookie header.
-        // we need to combat this by getting it from document.cookie
         let cookie;
         let temp = []
-        if (typeof window == 'undefined')
-        {
-            temp = server_response.headers['set-cookie'][0].split('; ')[0].split('=');
-        }
-        else
-        {
-            temp = document.cookie.split('; ')[0].split('=')
-        }
+        temp = server_response.headers['set-cookie'][0].split('; ')[0].split('=');
 
         // loop through the cookies and find the one for this chatroom
         for(let i=0; i<temp.length; i++)
@@ -56,6 +47,7 @@ class Chatroom
             }
         }
 
+        cookie = this.cookie
         return cookie
     }
 
