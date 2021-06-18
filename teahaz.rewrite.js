@@ -1,4 +1,6 @@
 const assert = require('assert');
+const crypto = require('crypto');
+const fernet = require('fernet');
 const axios = require("axios").default;
 
 
@@ -125,6 +127,23 @@ class Chatroom
             }
         }
     }
+
+
+    _export()
+    {
+        return {
+            server: this.server,
+
+            chatroomID: this.chatroomID,
+            userID: this.userID,
+
+            password: this.password,
+            cookie: this.cookie
+            }
+    }
+
+
+
 
     // --------------------------- main functions ----------------------------
 
@@ -255,7 +274,177 @@ class Chatroom
 }
 
 
-module.exports = Chatroom;
+
+
+
+
+class Storage
+{
+    constructor(args)
+    {
+        this.password = args.password;
+        assert(this.password != undefined, "No password has been supplied!")
+
+        this.localpath = args.path
+        this.url = args.server + `/storage/${args.username}`
+        assert(this.localpath != undefined || this.url != undefined, "Localpath OR server has to be set!")
+
+
+        // calculate accesspw
+        this.accesspw = crypto.createHash('sha256').update(this.password).digest('hex');
+        this.chatrooms =  [];
+    }
+
+    _encrypt(text, password)
+    {
+        // placeholder for encryption
+        // return btoa(text + password);
+        return text
+    }
+
+    _decrypt(text, password)
+    {
+        // placeholder for decryption
+        return atob(text + password);
+    }
+
+
+
+    appendItem(chatroom)
+    {
+        let data = chatroom._export();
+        this.chatrooms.push(data);
+    }
+    addlist(list)
+    {
+        // for i in list
+        // appendItem(list)
+    }
+
+
+
+
+    async storeRemote()
+    {
+        let data = this._encrypt(JSON.stringify(this.chatrooms), this.password);
+        return axios({
+            method: 'post',
+            url: this.url,
+            data: {
+                data: data,
+                password: this.accesspw,
+            }
+        })
+        .then((res) =>
+            {
+                return Promise.resolve(res.data);
+            })
+        .catch((err) =>
+            {
+                return Promise.reject(err);
+            });
+    }
+    storeLocal(path)
+    {
+        // json = JSON.serialise(this.chatroms)
+        // ejson = encrypt(this.chatrooms, this.password)
+        // fs.writefile(ejson, path)
+    }
+
+
+
+
+    async importRemote()
+    {
+        let data = await axios({
+            method: 'get',
+            url: this.url,
+            headers: {
+                password: this.accesspw
+            }
+        });
+        assert(data.status === 200, `Failed response from server while getting files: ${data.data}`);
+        data = data.data;
+        data = JSON.parse(atob(data));
+
+        let chatrooms = [];
+        for (let i = 0; i < data.length; i++)
+        {
+            chatrooms.push(new Chatroom(data[i]));
+        }
+
+        return Promise.resolve(chatrooms)
+    }
+    importLocal()
+    {
+        // ejson = fs.readfile(path)
+        // json = decrypt(ejson)
+        // list = JSON.serialise(json)
+        // newslist = []
+        // for i in list:
+        //          newslist.push(_restore(list))
+    }
+
+
+
+
+    async gethashRemote()
+    {
+        return axios({
+            method: 'get',
+            url: this.url + "/hash/",
+            headers: {
+                password: this.accesspw
+            }
+        })
+        .then((res) =>
+            {
+                return Promise.resolve(res.data)
+            })
+        .catch((err) =>
+            {
+                return Promise.resolve(err)
+            })
+    }
+    gethashLocal()
+    {
+    }
+
+
+
+
+    async deleteRemote()
+    {
+        return axios({
+            method: 'delete',
+            url: this.url,
+            headers: {
+                password: this.accesspw
+            }
+        })
+        .then((res) =>
+            {
+                return Promise.resolve(res.data)
+            })
+        .catch((err) =>
+            {
+                return Promise.resolve(err)
+            })
+    }
+    deleteLocal()
+    {
+    }
+}
+
+
+
+
+
+
+module.exports = {
+    chatroom: Chatroom,
+    storage: Storage
+}
 
 
 
