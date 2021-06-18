@@ -215,7 +215,6 @@ class Chatroom
     }
 
 
-
     async login(args) // login
     {
         // Make sure function doesnt crash if no arguments were passed.
@@ -262,6 +261,62 @@ class Chatroom
             })
         .catch((response) =>
             { // login unsuccessful
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            });
+    }
+
+
+    async logout() // remove cookies
+    {
+        // if there is no cookie then you are logged out of the chatroom
+        this.cookie = '';
+    }
+
+
+    async check_login(args) // queries the server to check if the client has valid cookies
+    {
+        // Make sure function doesnt crash if no arguments were passed.
+        args = ((args)? args : {})
+
+        // Make sure we have the needed data either in args or as instance variables.
+        assert((args.userID || this.userID ), "Error: 'userID' variable has not been passed ot 'login'!");
+
+        // Set callbacks, if supplied.
+        let callback_error   = args.callback_error;
+        let callback_success = args.callback_success;
+
+        // The user is allowed to set instance variables at any call,
+        // this function updates them globally across the entire object.
+        this._updateArgs(args);
+
+
+        // make request
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/login/${this.chatroomID}`,
+            headers: {
+                userID: this.userID,
+                Cookie: `${this.chatroomID}=${this.cookie}`
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // logged in
+                // // only give back data the user asked for
+                response = this._handle_response(response);
+                //
+                // // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // not logged in
 
                 // only give back data the user asked for
                 response = this._handle_response(response);
