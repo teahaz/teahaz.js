@@ -390,10 +390,51 @@ class Chatroom
     }
 
 
-    async get_messages({count, start_time, callback_success, callback_error}={})
+    async get_messages({count, start_time, channelID, callback_success, callback_error}={})
     {
         assert((typeof(count) == 'number'      || count == undefined),      "'count' variable has to be of type `number`.")
         assert((typeof(start_time) == 'number' || start_time == undefined), "'start_time' variable has to be of type `number`.")
+
+        let headers = {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+                userID: this.userID
+        };
+
+        // need to add obptional arguments like this as headers do not accept 'undefined'
+        if (count != undefined)
+            headers.count = count;
+        if (start_time != undefined)
+            headers.time = start_time;
+        if (channelID != undefined)
+            headers.channelID = channelID;
+
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/messages/${this.chatroomID}`,
+            headers: headers,
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // successfully got messages
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed to get messages.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
     }
 
 
