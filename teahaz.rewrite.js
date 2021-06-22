@@ -26,9 +26,8 @@ class Chatroom
 
         //// Stuff that probably should not be set, but its still possible
         this.chat_name    = args.chat_name;
-        this.channels     = args.channels;
         this.cookie       = args.cookie;
-
+        this.channels     = args.channels;
 
 
 
@@ -53,6 +52,14 @@ class Chatroom
     _encode(text) { return btoa(text); } // placeholder for encryption
     _decode(text) { return atob(text); } // placeholder for decryption
 
+
+    async _keep_up_to_date()
+    {
+        // called by the constructor, this should be a call that runs every few seconds
+        // and makes sure that all data (ie: chatroom details, channels etc) are up to date
+        //
+        // there should be an optional callback for changes so a client can render the new information
+    }
 
     _sleep(ms) // internal sleep function
     { // ~ js sleep is long and messy
@@ -86,6 +93,7 @@ class Chatroom
     }
 
 
+    // FIXME: can probably be deleted
     _updateArgs(args) // update instance variables if they have been set
     { // ~ this is a generic function to be called at the begininng of other functions
         // it updates instance variables, if they have been redefined at a function call
@@ -129,6 +137,42 @@ class Chatroom
     }
 
 
+    _add_channels(new_channels_array) // filters a list of chatrooms and adds all that are unique to the channels instance variable
+    {
+        // The newest information is always trusted to be the most up-to-date one so,
+        //   when getting a list just append the ones that are in the instance variables,
+        //   but not in the new list and replace the instance variable with the new list.
+
+        new_channels_array = ((Array.isArray(new_channels_array))? new_channels_array : [new_channels_array]);
+
+        // if there arent any channels then just add this as the first
+        if (this.channels == undefined)
+        {
+            this.channels = new_channels_array;
+            return;
+        }
+
+
+        // get all ids from the new channels
+        let newids_list = [];
+        for (const channel of new_channels_array)
+        {
+            newids_list.push(channel.channelID);
+        }
+
+
+
+        for (const channel of this.channels)
+        {
+            if (!newids_list.includes(channel.channelID))
+            {
+                new_channels_array.push(channel);
+            }
+        }
+
+        this.channels = ((Array.isArray(new_channels_array))? new_channels_array : [new_channels_array]);
+    }
+
     _export()
     {
         return {
@@ -150,34 +194,22 @@ class Chatroom
 
 
 
-    async create_chatroom(args) // create a new chatroom
+    async create_chatroom({chat_name, callback_success, callback_error}={}) // create a new chatroom
     {
-        // make sure function doesnt crash if no arguments were passed
-        args = ((args)? args : {})
-
 
         // chatroom name needs to be set
-        assert((args.chat_name || this.chat_name ), "Error: 'chat_name' (name of the chatroom) has not been set!");
-        let chatname = args.chat_name;
-
-        assert((args.username || this.username ), "Error: 'username' variable has not been passed ot 'create_chatroom'!");
-        assert((args.password || this.password ), "Error: 'password' variable has not been passed ot 'create_chatroom'!");
-
-        // generic callbacks
-        let callback_error   = args.callback_error;
-        let callback_success = args.callback_success;
-
-        // Update any instance variables that
-        //  might have been set in the args obj.
-        this._updateArgs(args);
+        assert((chat_name || this.chat_name ), "Error: 'chat_name' (name of the chatroom) has not been set!");
 
         return axios({
             method: 'post',
             url: `${this.server}/api/v0/chatroom/`,
+            header: {
+                "Content-Type": "application/json"
+            },
             data: {
                 "username": this.username,
                 "password": this.password,
-                "chatroom_name": chatname
+                "chatroom_name": chat_name
             },
             proxy: this.proxy
         })
@@ -189,7 +221,9 @@ class Chatroom
                 this.userID = response.data.userID
                 this.chatroomID = response.data.chatroomID
                 this.chat_name = response.data.chatroom_name
-                this.channels = [response.data.channelID]
+
+                // save new channels
+                this._add_channels(response.data.channels)
 
 
                 // save cookie
@@ -215,31 +249,19 @@ class Chatroom
     }
 
 
-    async login(args) // login
+    async login({callback_success, callback_error}={}) // login
     {
-        // Make sure function doesnt crash if no arguments were passed.
-        args = ((args)? args : {})
-
-        // Make sure we have the needed data either in args or as instance variables.
-        assert((args.userID || this.userID ), "Error: 'userID' variable has not been passed ot 'login'!");
-        assert((args.password || this.password ), "Error: 'password' variable has not been passed ot 'login'!");
-        assert((args.chatroomID || this.chatroomID ), "Error: 'chatroomID' variable has not been passed ot 'login'!");
-
-
-        // Set callbacks, if supplied.
-        let callback_error   = args.callback_error;
-        let callback_success = args.callback_success;
-
-
-        // The user is allowed to set instance variables at any call,
-        // this function updates them globally across the entire object.
-        this._updateArgs(args);
+        assert(this.userID ,   "Error: 'userID' variable has not been passed ot 'login'!");
+        assert(this.password , "Error: 'password' variable has not been passed ot 'login'!");
 
 
         // make request
         return axios({
             method: 'post',
             url: `${this.server}/api/v0/login/${this.chatroomID}`,
+            header: {
+                "Content-Type": "application/json"
+            },
             data: {
                 userID: this.userID,
                 password: this.password
@@ -272,28 +294,16 @@ class Chatroom
     }
 
 
-    async logout() // remove cookies
+    logout() // remove cookies
     {
         // if there is no cookie then you are logged out of the chatroom
         this.cookie = '';
     }
 
 
-    async check_login(args) // queries the server to check if the client has valid cookies
+    async check_login({callback_success, callback_error}={}) // queries the server to check if the client has valid cookies
     {
-        // Make sure function doesnt crash if no arguments were passed.
-        args = ((args)? args : {})
-
-        // Make sure we have the needed data either in args or as instance variables.
-        assert((args.userID || this.userID ), "Error: 'userID' variable has not been passed ot 'login'!");
-
-        // Set callbacks, if supplied.
-        let callback_error   = args.callback_error;
-        let callback_success = args.callback_success;
-
-        // The user is allowed to set instance variables at any call,
-        // this function updates them globally across the entire object.
-        this._updateArgs(args);
+        assert(this.userID , "Error: 'userID' variable has not been passed ot 'login'!");
 
 
         // make request
@@ -311,7 +321,7 @@ class Chatroom
                 // // only give back data the user asked for
                 response = this._handle_response(response);
                 //
-                // // run callbacks if specified, and return promise
+                // run callbacks if specified, and return promise
                 this._runcallbacks(callback_success, response);
                 return Promise.resolve(response);
             })
@@ -326,9 +336,153 @@ class Chatroom
                 return Promise.reject(response);
             });
     }
+
+
+    async send_message({message, channelID, callback_success, callback_error}={}) // send message to chatroom
+    {
+        // check arguments
+        assert((message && message.length > 0), "Cannot send empty message!");
+
+        return axios({
+            method: 'post',
+            url: `${this.server}/api/v0/messages/${this.chatroomID}`,
+            headers: {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json"
+            },
+            data: {
+                userID: this.userID,
+                channelID: channelID,
+
+                mtype: 'text',
+                data: this._encode(message),
+
+                keyID: null,
+                replyID: null
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // Successfully sent message.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed to send message.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+    }
+
+
+    async reply_message(args)
+    {
+    }
+
+
+    async get_messages({count, start_time, callback_success, callback_error}={})
+    {
+        assert((typeof(count) == 'number'      || count == undefined),      "'count' variable has to be of type `number`.")
+        assert((typeof(start_time) == 'number' || start_time == undefined), "'start_time' variable has to be of type `number`.")
+    }
+
+
+    async create_channel({channel_name, public_channel, callback_success, callback_error}={})
+    {
+        assert(channel_name, "channel_name must be specified!");
+
+        // if not specified, public_channel will default to true
+        public_channel = ((public_channel != undefined)? public_channel : true )
+
+        return axios({
+            method: 'post',
+            url: `${this.server}/api/v0/channels/${this.chatroomID}`,
+            headers: {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+            },
+            data: {
+                userID: this.userID,
+                channel_name: channel_name,
+                public: public_channel
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // Successfully created channel.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // save any new channels
+                this._add_channels(response)
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed to create channel
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+    }
+
+
+
+    async get_channels({callback_success, callback_error}={}) // get channels that the user has access to
+    {
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/channels/${this.chatroomID}`,
+            headers: {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+
+                userID: this.userID
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // got everything successfully
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // save any new channels
+                this._add_channels(response)
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+    }
 }
-
-
 
 
 
@@ -458,7 +612,7 @@ class Storage
             })
         .catch((err) =>
             {
-                return Promise.resolve(err)
+                return Promise.reject(err)
             })
     }
     gethashLocal()
@@ -483,15 +637,13 @@ class Storage
             })
         .catch((err) =>
             {
-                return Promise.resolve(err)
+                return Promise.reject(err)
             })
     }
     deleteLocal()
     {
     }
 }
-
-
 
 
 
