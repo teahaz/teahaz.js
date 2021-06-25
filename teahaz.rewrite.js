@@ -196,7 +196,6 @@ class Chatroom
 
     async create_chatroom({chat_name, callback_success, callback_error}={}) // create a new chatroom
     {
-
         // chatroom name needs to be set
         assert((chat_name || this.chat_name ), "Error: 'chat_name' (name of the chatroom) has not been set!");
 
@@ -271,13 +270,16 @@ class Chatroom
         .then((response) =>
             { // successful login
 
-                // // save cookie
+                // save cookie
                 this._extract_cookie(response);
-                //
-                // // only give back data the user asked for
+
+                // save new channels
+                this._add_channels(response.data.channels)
+
+                // only give back data the user asked for
                 response = this._handle_response(response);
-                //
-                // // run callbacks if specified, and return promise
+
+                // run callbacks if specified, and return promise
                 this._runcallbacks(callback_success, response);
                 return Promise.resolve(response);
             })
@@ -483,7 +485,6 @@ class Chatroom
                 return Promise.reject(response);
             })
     }
-
 
 
     async get_channels({callback_success, callback_error}={}) // get channels that the user has access to
