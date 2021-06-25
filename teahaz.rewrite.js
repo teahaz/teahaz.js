@@ -524,6 +524,42 @@ class Chatroom
                 return Promise.reject(response);
             })
     }
+
+    async get_users({callback_success, callback_error}={}) // get all users in a chatroom
+    {
+        return axios({
+            get: 'get',
+            url: `${this.server}/api/v0/users/${this.chatroomID}`,
+            headers: {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+                userID: this.userID
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // got everything successfully
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // FIXME: save all users locally as instance variables so we dont need a new call everytime we need user details.
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+    }
 }
 
 
