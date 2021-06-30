@@ -49,9 +49,10 @@ class Chatroom
     }
 
 
-    _encode(text) { return btoa(text); } // placeholder for encryption
-    _decode(text) { return atob(text); } // placeholder for decryption
-
+    // _encode(text) { return btoa(text); } // placeholder for encryption
+    // _decode(text) { return atob(text); } // placeholder for decryption
+    _encode(text) { return Buffer.from(text, 'binary').toString('base64'); } // placeholder for encryption
+    _decode(text) { return Buffer.from(text, 'base64').toString('binary'); } // placeholder for decryption
 
     async _keep_up_to_date()
     {
