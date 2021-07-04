@@ -214,7 +214,7 @@ class Chatroom
             proxy: this.proxy
         })
         .then((response) =>
-            { // Successfully joined the chatroom.
+            { // Successfully created the chatroom.
 
 
                 // save things that we need to save from this
@@ -237,6 +237,66 @@ class Chatroom
                 return Promise.resolve(response);
             })
         .catch((response) =>
+            { // Creating to chatroom failed.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            });
+    }
+
+    async use_invite({inviteID, username, password, callback_success, callback_error}={})
+    {
+        assert(inviteID, "No value supplied for 'inviteID'");
+        assert(this.chatroomID, "Instance variable 'chatroomID' has not been set");
+
+
+        // some values may have been assigned at the creation of the object,
+        //  rather than when use_invite was called
+        username = ((username != undefined)? username : this.username)
+        password = ((password != undefined)? password : this.password)
+        assert(username, "No value supplied for 'username'");
+        assert(password, "No value supplied for 'password'");
+
+        return axios({
+            method: 'post',
+            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            data: {
+                inviteID: inviteID,
+                username: username,
+                password: password
+            }
+        })
+        .then((response) =>
+            { // Successfully joined the chatroom.
+
+
+                // // save things that we need to save from this
+                // this.userID = response.data.userID
+                // this.chatroomID = response.data.chatroomID
+                // this.chat_name = response.data.chatroom_name
+
+                // // save new channels
+                // this._add_channels(response.data.channels)
+
+
+                // // save cookie
+                // this._extract_cookie(response);
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
             { // Joining to chatroom failed.
 
                 // only give back data the user asked for
@@ -248,6 +308,53 @@ class Chatroom
             });
     }
 
+
+    async create_invite({uses, bestbefore, callback_success, callback_error}={})
+    {
+        assert((typeof(uses) == 'number'       || uses == undefined), "'uses' variable has to be of type `number`.");
+        assert((typeof(bestbefore) == 'number' || bestbefore == undefined), "'bestbefore' variable has to be of type `number`.");
+
+
+        let headers = {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+                userID: this.userID
+        };
+
+        // need to add obptional arguments like this as headers do not accept 'undefined'
+        if (uses != undefined)
+            headers.uses = uses;
+        if (bestbefore != undefined)
+            headers.bestbefore = bestbefore;
+
+
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
+            headers: headers,
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // Successfully sent message.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed to send message.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+    }
 
     async login({callback_success, callback_error}={}) // login
     {
@@ -761,8 +868,8 @@ module.exports = {
     // async use_invite(args) // use an invite
     // {
     //     // invite Id needed for joining the chatroom
-    //     assert(args.inviteId, "Error: 'invite' argument has not been set!")
-    //     let inviteId = args.invite;
+    //     assert(args.inviteID, "Error: 'invite' argument has not been set!")
+    //     let inviteID = args.invite;
     //
     //     // generic callbacks
     //     let callback_error   = args.callback_error;
@@ -779,7 +886,7 @@ module.exports = {
     //         data: {
     //             username: this.username,
     //             password: this.password,
-    //             inviteId: inviteId
+    //             inviteID: inviteID
     //         }
     //     })
     //     .then((response) =>
