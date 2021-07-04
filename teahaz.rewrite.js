@@ -277,17 +277,19 @@ class Chatroom
             { // Successfully joined the chatroom.
 
 
-                // // save things that we need to save from this
-                // this.userID = response.data.userID
-                // this.chatroomID = response.data.chatroomID
-                // this.chat_name = response.data.chatroom_name
+                // save things that we need to save from this
+                this.userID = response.data.userID;
+                this.chatroomID = response.data.chatroomID;
+                this.chat_name = response.data.chatroom_name;
 
-                // // save new channels
-                // this._add_channels(response.data.channels)
+                // save new channels
+                this._add_channels(response.data.channels);
 
+                // save settings
+                this.settings = response.data.settings;
 
-                // // save cookie
-                // this._extract_cookie(response);
+                // save cookie
+                this._extract_cookie(response);
 
                 // only give back data the user asked for
                 response = this._handle_response(response);
@@ -307,7 +309,6 @@ class Chatroom
                 return Promise.reject(response);
             });
     }
-
 
     async create_invite({uses, bestbefore, callback_success, callback_error}={})
     {
