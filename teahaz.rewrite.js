@@ -19,7 +19,6 @@ class Chatroom
         this.chatroomID   = args.chatroomID;
         this.username     = args.username;
         this.password     = args.password;
-        this.userID       = args.userID
 
 
 
@@ -218,7 +217,6 @@ class Chatroom
 
 
                 // save things that we need to save from this
-                this.userID = response.data.userID
                 this.chatroomID = response.data.chatroomID
                 this.chat_name = response.data.chatroom_name
 
@@ -310,10 +308,10 @@ class Chatroom
             });
     }
 
-    async create_invite({uses, bestbefore, callback_success, callback_error}={})
+    async create_invite({uses, bestbefore: expiration_time, callback_success, callback_error}={})
     {
         assert((typeof(uses) == 'number'       || uses == undefined), "'uses' variable has to be of type `number`.");
-        assert((typeof(bestbefore) == 'number' || bestbefore == undefined), "'bestbefore' variable has to be of type `number`.");
+        assert((typeof(expiration_time) == 'number' || expiration_time == undefined), "'bestbefore' variable has to be of type `number`.");
 
 
         let headers = {
@@ -325,8 +323,8 @@ class Chatroom
         // need to add obptional arguments like this as headers do not accept 'undefined'
         if (uses != undefined)
             headers.uses = uses;
-        if (bestbefore != undefined)
-            headers.bestbefore = bestbefore;
+        if (expiration_time != undefined)
+            headers['expiration-time'] = expiration_time;
 
 
         return axios({
@@ -500,6 +498,48 @@ class Chatroom
     {
     }
 
+    async monitor_messages({since, channelID, callback_success, callback_error}={})
+    { // this function currently does no monitoring but its here to test out the get since functionality
+        assert((typeof(since) == 'number'), "'since' variable has to be of type `number`.")
+
+        let headers = {
+                "Cookie": `${this.chatroomID}=${this.cookie}`,
+                "Content-Type": "application/json",
+                "get-method": 'since',
+                userID: this.userID,
+                time: since
+        };
+        if (channelID != undefined)
+            headers.channelID = channelID;
+
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/messages/${this.chatroomID}`,
+            headers: headers,
+            proxy: this.proxy
+        })
+        .then((response) =>
+            { // successfully got messages
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            { // Failed to get messages.
+
+                // only give back data the user asked for
+                response = this._handle_response(response);
+
+                // run callbacks if specified, and return promise
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+
+    }
 
     async get_messages({count, start_time, channelID, callback_success, callback_error}={})
     {
@@ -509,6 +549,7 @@ class Chatroom
         let headers = {
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
+                "get-method": 'count',
                 userID: this.userID
         };
 
@@ -594,7 +635,6 @@ class Chatroom
                 return Promise.reject(response);
             })
     }
-
 
     async get_channels({callback_success, callback_error}={}) // get channels that the user has access to
     {
