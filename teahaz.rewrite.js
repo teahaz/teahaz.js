@@ -179,7 +179,7 @@ class Chatroom
             server: this.server,
 
             chatroomID: this.chatroomID,
-            userID: this.userID,
+            username: this.username,
 
             password: this.password,
             cookie: this.cookie
@@ -276,7 +276,7 @@ class Chatroom
 
 
                 // save things that we need to save from this
-                this.userID = response.data.userID;
+                this.username = response.data.username;
                 this.chatroomID = response.data.chatroomID;
                 this.chat_name = response.data.chatroom_name;
 
@@ -317,7 +317,7 @@ class Chatroom
         let headers = {
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
-                userID: this.userID
+                username: this.username
         };
 
         // need to add obptional arguments like this as headers do not accept 'undefined'
@@ -357,8 +357,8 @@ class Chatroom
 
     async login({callback_success, callback_error}={}) // login
     {
-        assert(this.userID ,   "Error: 'userID' variable has not been passed ot 'login'!");
-        assert(this.password , "Error: 'password' variable has not been passed ot 'login'!");
+        assert(this.username , "Error: 'username' variable has not been passed to 'login'!");
+        assert(this.password , "Error: 'password' variable has not been passed to 'login'!");
 
 
         // make request
@@ -369,7 +369,7 @@ class Chatroom
                 "Content-Type": "application/json"
             },
             data: {
-                userID: this.userID,
+                username: this.username,
                 password: this.password
             },
             proxy: this.proxy
@@ -412,7 +412,7 @@ class Chatroom
 
     async check_login({callback_success, callback_error}={}) // queries the server to check if the client has valid cookies
     {
-        assert(this.userID , "Error: 'userID' variable has not been passed ot 'login'!");
+        assert(this.username , "Error: 'username' variable has not been passed ot 'login'!");
 
 
         // make request
@@ -420,7 +420,7 @@ class Chatroom
             method: 'get',
             url: `${this.server}/api/v0/login/${this.chatroomID}`,
             headers: {
-                userID: this.userID,
+                username: this.username,
                 Cookie: `${this.chatroomID}=${this.cookie}`
             },
             proxy: this.proxy
@@ -460,7 +460,7 @@ class Chatroom
                 "Content-Type": "application/json"
             },
             data: {
-                userID: this.userID,
+                username: this.username,
                 channelID: channelID,
 
                 mtype: 'text',
@@ -506,7 +506,7 @@ class Chatroom
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
                 "get-method": 'since',
-                userID: this.userID,
+                username: this.username,
                 time: since
         };
         if (channelID != undefined)
@@ -550,7 +550,7 @@ class Chatroom
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
                 "get-method": 'count',
-                userID: this.userID
+                username: this.username
         };
 
         // need to add obptional arguments like this as headers do not accept 'undefined'
@@ -605,7 +605,7 @@ class Chatroom
                 "Content-Type": "application/json",
             },
             data: {
-                userID: this.userID,
+                username: this.username,
                 channel_name: channel_name,
                 public: public_channel
             },
@@ -645,7 +645,7 @@ class Chatroom
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
 
-                userID: this.userID
+                username: this.username
             },
             proxy: this.proxy
         })
@@ -682,7 +682,7 @@ class Chatroom
             headers: {
                 "Cookie": `${this.chatroomID}=${this.cookie}`,
                 "Content-Type": "application/json",
-                userID: this.userID
+                username: this.username
             },
             proxy: this.proxy
         })
