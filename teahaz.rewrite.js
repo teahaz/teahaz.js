@@ -215,13 +215,17 @@ class Chatroom
         .then((response) =>
             { // Successfully created the chatroom.
 
+                console.dir(response.data, {depth: null});
+
+                process.exit(1);
+
 
                 // save things that we need to save from this
-                this.chatroomID = response.data.chatroomID
-                this.chat_name = response.data.chatroom_name
+                this.chatroomID = response.data.chatroomID;
+                this.chat_name = response.data.chatroom_name;
 
                 // save new channels
-                this._add_channels(response.data.channels)
+                this._add_channels(response.data.channels);
 
 
                 // save cookie
