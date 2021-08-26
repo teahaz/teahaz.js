@@ -573,7 +573,8 @@ class Chatroom
                 "username": this.username,
                 "channel-name": channel_name,
                 "permissions": permissions
-            }
+            },
+            proxy: this.proxy
         })
         .then((response) =>
             {
@@ -616,7 +617,8 @@ class Chatroom
                 data: message,
                 channelID,
                 replyID
-            }
+            },
+            proxy: this.proxy
         })
         .then((response) =>
             {
@@ -659,7 +661,8 @@ class Chatroom
         return axios({
             method: 'get',
             url: `${this.server}/api/v0/messages/${this.chatroomID}`,
-            headers: headers
+            headers: headers,
+            proxy: this.proxy
         })
         .then((response) =>
             {
@@ -671,6 +674,50 @@ class Chatroom
                 }
                 response.data = messages_array;
 
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) => 
+            {
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            });
+    }
+
+
+    async create_invite({uses, classes, expiration_time: expiration_time, callback_success, callback_error}={})
+    {
+        assert(typeof(uses) == 'number', "'uses' variable has to be a number.");
+        assert(typeof(expiration_time) == 'number', "'expiration_time' variable has to be a number.");
+        assert((classes == undefined || Array.isArray(classes)), "'classes' (optional) variable has to be an array of class IDs");
+
+        // Due to the limitations of the http standard
+        // we have to send information for GET requests
+        // in the header.
+        let headers = {
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+            "Cookie": `${this.chatroomID}=${this.cookie}`,
+
+            "username": this.username,
+            "uses": uses,
+            "expiration_time": expiration_time,
+        }
+
+        // Axios doesnt allow sending undefined in a heder,
+        // so we have to conditionally define classes
+        if (typeof(classes) == "object")
+            headers['classes'] = classes
+
+
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
+            headers: headers,
+            proxy: this.proxy
+        })
+        .then((response) =>
+            {
                 this._runcallbacks(callback_success, response);
                 return Promise.resolve(response);
             })
