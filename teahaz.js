@@ -395,17 +395,15 @@ class Chatroom
                     })
 
             case 2:
-                // return await this.use_invite(args)
-                // .then((_) =>
-                //     {
-                //         return Promise.resolve(res)
-                //     })
-                // .catch((res) =>
-                //     {
-                //         return Promise.reject(res)
-                //     })
-                res = 'use_invite not implemented yet';
-                return res;
+                return await this.use_invite(args)
+                .then((_) =>
+                    {
+                        return Promise.resolve(res)
+                    })
+                .catch((res) =>
+                    {
+                        return Promise.reject(res)
+                    })
         }
     }
 
@@ -493,6 +491,97 @@ class Chatroom
                 this._runcallbacks(callback_error, response);
                 return Promise.reject(response);
             })
+    }
+
+    async use_invite({inviteID, username, nickname, password, callback_success, callback_error}={})
+    {
+        /*
+         * Using an invite to join a chatroom.
+         *
+         * This method lets you join a chatroom with an invite.
+         * Using an invite is the only way a user can join an
+         * already existing chatroom.
+         */
+
+        assert((inviteID || this.inviteID), "'inviteID' variable has not been set!");
+        assert((username || this.username), "'username' variable has not been set!");
+        assert((password || this.password), "'password' variable has not been set!");
+        assert(this.chatroomID, "'chatroomID' variable has not been set!");
+
+
+        return axios({
+            method: 'post',
+            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
+            header: {
+                "User-Agent": USER_AGENT,
+                "Content-Type": "application/json"
+            },
+            data: {
+                "inviteID": inviteID || this.inviteID,
+                "username": username || this.username,
+                "nickname": nickname || this.nickname,
+                "password": password || this.password
+            },
+            proxy: this.proxy
+        })
+        .then((response) =>
+            {
+                // save chatroom details
+                this._store_default_join(response)
+
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) =>
+            {
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            })
+
+
+    }
+
+    async create_invite({uses, classes, expiration_time: expiration_time, callback_success, callback_error}={})
+    {
+        assert(typeof(uses) == 'number', "'uses' variable has to be a number.");
+        assert(typeof(expiration_time) == 'number', "'expiration_time' variable has to be a number.");
+        assert((classes == undefined || Array.isArray(classes)), "'classes' (optional) variable has to be an array of class IDs");
+
+        // Due to the limitations of the http standard
+        // we have to send information for GET requests
+        // in the header.
+        let headers = {
+            "User-Agent": USER_AGENT,
+            "Content-Type": "application/json",
+            "Cookie": `${this.chatroomID}=${this.cookie}`,
+
+            "username": this.username,
+            "uses": uses,
+            "expiration_time": expiration_time,
+        }
+
+        // Axios doesnt allow sending undefined in a heder,
+        // so we have to conditionally define classes
+        if (typeof(classes) == "object")
+            headers['classes'] = classes
+
+
+        return axios({
+            method: 'get',
+            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
+            headers: headers,
+            proxy: this.proxy
+        })
+        .then((response) =>
+            {
+                this._runcallbacks(callback_success, response);
+                return Promise.resolve(response);
+            })
+        .catch((response) => 
+            {
+                this._runcallbacks(callback_error, response);
+                return Promise.reject(response);
+            });
     }
 
     async get_chat_info({callback_success, callback_error}={})
@@ -685,48 +774,6 @@ class Chatroom
     }
 
 
-    async create_invite({uses, classes, expiration_time: expiration_time, callback_success, callback_error}={})
-    {
-        assert(typeof(uses) == 'number', "'uses' variable has to be a number.");
-        assert(typeof(expiration_time) == 'number', "'expiration_time' variable has to be a number.");
-        assert((classes == undefined || Array.isArray(classes)), "'classes' (optional) variable has to be an array of class IDs");
-
-        // Due to the limitations of the http standard
-        // we have to send information for GET requests
-        // in the header.
-        let headers = {
-            "User-Agent": USER_AGENT,
-            "Content-Type": "application/json",
-            "Cookie": `${this.chatroomID}=${this.cookie}`,
-
-            "username": this.username,
-            "uses": uses,
-            "expiration_time": expiration_time,
-        }
-
-        // Axios doesnt allow sending undefined in a heder,
-        // so we have to conditionally define classes
-        if (typeof(classes) == "object")
-            headers['classes'] = classes
-
-
-        return axios({
-            method: 'get',
-            url: `${this.server}/api/v0/invites/${this.chatroomID}`,
-            headers: headers,
-            proxy: this.proxy
-        })
-        .then((response) =>
-            {
-                this._runcallbacks(callback_success, response);
-                return Promise.resolve(response);
-            })
-        .catch((response) => 
-            {
-                this._runcallbacks(callback_error, response);
-                return Promise.reject(response);
-            });
-    }
 }
 
 
